@@ -9,11 +9,11 @@ echo 'Installing Ansible and git on host'
 # sudo apt-get update -y
 # sudo apt-get install -y software-properties-common
 # sudo apt-add-repository --yes --update ppa:ansible/ansible
-sudo apt-get install -y unzip
+sudo apt-get install -y python3 python3-pip unzip
 
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python get-pip.py --user
-pip install --user ansible
+python3 get-pip.py --user
+pip3 install --user ansible
 
 ansible --version
 
