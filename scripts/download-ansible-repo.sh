@@ -13,11 +13,12 @@ echo 'Installing Ansible and git on host'
 
 # ansible --version
 # git version
-
+sudo apt-get install -y unzip python-pip
+pip install -y ansible
 cd /tmp/
 # git clone https://github.com/michnmi/ansible_internal
 curl -L https://github.com/michnmi/ansible_internal/archive/master.zip --output /tmp/master.zip
 unzip master.zip
-# cd ansible_internal
+cd ansible_internal
 
-# ansible-playbook  -i inventories/cloud_vms/hosts.ini -l cloud_vm playbooks/cloud_vm.yml
+ansible-playbook  -i inventories/cloud_vms/hosts.ini -l cloud_vm playbooks/cloud_vm.yml
