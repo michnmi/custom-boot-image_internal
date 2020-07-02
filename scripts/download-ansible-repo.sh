@@ -14,7 +14,9 @@ ansible --version
 
 echo 'Download and setup repo for ansible-playbook'
 curl -L https://github.com/michnmi/ansible_internal/archive/master.zip --output /tmp/master.zip
+
+cd /tmp
 unzip master.zip
-cd /tmp/ansible_internal-master
+cd ansible_internal-master
 
 ansible-playbook  -i inventories/cloud_vms/hosts.ini -l cloud_vm playbooks/cloud_vm.yml
