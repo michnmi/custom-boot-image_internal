@@ -13,7 +13,7 @@ echo 'Installing Ansible and git on host'
 
 # ansible --version
 # git version
-sudo apt-get install -y unzip python-pip
+sudo apt-get install -y unzip pip-python
 pip install -y ansible
 cd /tmp/
 # git clone https://github.com/michnmi/ansible_internal
