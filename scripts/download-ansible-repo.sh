@@ -7,14 +7,12 @@ set -e -x
 
 echo 'Installing Ansible and git on host'
 # sudo apt-get update -y
-# sudo apt-get install -y software-properties-common
-# sudo apt-add-repository --yes --update ppa:ansible/ansible
-# sudo apt-get install -y ansible git
+sudo apt-get install -y software-properties-common
+sudo apt-add-repository --yes --update ppa:ansible/ansible
+sudo apt-get install -y ansible unzip
 
-# ansible --version
-# git version
-sudo apt-get install -y unzip pip-python
-pip install -y ansible
+ansible --version
+
 cd /tmp/
 # git clone https://github.com/michnmi/ansible_internal
 curl -L https://github.com/michnmi/ansible_internal/archive/master.zip --output /tmp/master.zip
