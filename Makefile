@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	PACKER_LOG=1 packer build  -var-file variables.json ubuntu18.04_baseos.json > build.log
+	PACKER_LOG=1 PACKER_LOG_PATH=build.log packer build  -var-file variables.json ubuntu18.04_baseos.json
 
 .PHONY: clean
 clean:
