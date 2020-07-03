@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-        stage('Setup build') {
+        stage('Prepare build') {
             steps {
                 checkout scm
                 script {
@@ -17,12 +17,12 @@ pipeline {
                 }
             }
         }
-        stage('Build VM') {
+        stage('Build cloud VM') {
             steps {
                 sh('make build')
             }
         }
-        stage('Clean up output') {
+        stage('Delete qcows - clean up') {
             steps {
                 sh('make clean')
             }
