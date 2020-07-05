@@ -22,7 +22,7 @@ pipeline {
                 sh('make build')
             }
         }
-        stage('Delete qcows - clean up') {
+        stage('Clean up') {
             steps {
                 sh('make clean')
             }
