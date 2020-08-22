@@ -22,10 +22,5 @@ pipeline {
                 sh('make build')
             }
         }
-        stage('Clean up') {
-            steps {
-                sh('make clean')
-            }
-        }
     }
 }
