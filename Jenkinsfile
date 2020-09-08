@@ -10,10 +10,6 @@ pipeline {
                         sshUserPrivateKey(
                             credentialsId: 'packer-ssh-pair',
                             keyFileVariable: 'SSH_KEY_FILE'
-                        ),
-                        string(
-                            credentialsId: 'Ansible-Vault password',
-                            variable: 'VAULT_PASSWD'
                         )
                     ]) {
                         sh 'cat $SSH_KEY_FILE > ssh_keys/id_rsa_packer'
@@ -23,7 +19,14 @@ pipeline {
         }
         stage('Build cloud VM') {
             steps {
-                sh('make build')
+                withCredentials([
+                    string(
+                            credentialsId: 'Ansible-Vault password',
+                            variable: 'VAULT_PASSWD'
+                        )
+                ]) {
+                    sh 'make all'
+                }
             }
         }
     }
