@@ -2,7 +2,6 @@
 
 set -e -x
 
-
 # Following the official ansible docs: https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-ubuntu
 
 echo 'Installing Ansible'
@@ -19,4 +18,7 @@ cd /tmp
 unzip master.zip
 cd ansible_internal-master
 
-ansible-playbook  -i inventories/cloud_vms/hosts.ini -l cloud_vm playbooks/cloud_vm.yml
+# Store vault password in a file.
+echo $VAULT_PASSWORD > ./vault-password.txt
+
+ansible-playbook   -i inventories/cloud_vms/hosts.ini -l cloud_vm playbooks/cloud_vm.yml --vault-password-file ./vault-password.txt
