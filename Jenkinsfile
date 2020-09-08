@@ -24,8 +24,9 @@ pipeline {
                             credentialsId: 'Ansible-Vault password',
                             variable: 'VAULT_PASSWD'
                         )
-                ])
-                sh('make build')
+                ]) {
+                    sh 'make build'
+                }
             }
         }
     }
