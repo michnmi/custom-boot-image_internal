@@ -25,7 +25,7 @@ pipeline {
                             variable: 'VAULT_PASSWD'
                         )
                 ]) {
-                    sh 'make build'
+                    sh 'make all'
                 }
             }
         }
