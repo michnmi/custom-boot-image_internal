@@ -1,6 +1,9 @@
 {
   "_comment": "sudo  -u packer  -s /bin/bash; PACKER_LOG=1 packer build  -var-file variables.json ubuntu18.04_baseos.json",
   "description": "KVM VM based on Ubuntu 18.04 LTS",
+  "variables": {
+    "vault_password": "{{ env `VAULT_PASSWD` }}"
+  },
   "builders": [
     {
       "name": "ubuntu18.04_baseos",
@@ -38,9 +41,10 @@
       "script": "./scripts/download-ansible-repo.sh",
       "expect_disconnect": false,
       "environment_vars": [
-        "DEBIAN_FRONTEND=noninteractive"
+        "DEBIAN_FRONTEND=noninteractive",
+        "VAULT_PASSWORD={{ user `vault_password` }}"
       ],
-      "execute_command": "sudo -S bash -c '{{ .Vars }} {{ .Path}}'"
+      "execute_command": "sudo -S bash -c \"{{ .Vars }} {{ .Path}}\""
     },
     {
       "type": "shell",
