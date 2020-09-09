@@ -44,5 +44,10 @@ pipeline {
                 }
             }
         }
+        stage('Clean up everything') {
+            steps {
+                    sh 'make clean'
+                }
+            }
     }
 }
