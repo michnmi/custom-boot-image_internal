@@ -25,7 +25,22 @@ pipeline {
                             variable: 'VAULT_PASSWD'
                         )
                 ]) {
-                    sh 'make all'
+                    sh 'make build'
+                }
+            }
+        }
+        stage('Send qcow over to vmhost') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'jenkins-boot-volume',
+                        keyFileVariable: 'STORAGE_USER_KEY',
+                        usernameVariable: 'STORAGE_USER_NAME'
+                        )
+                ]) {
+                    sh 'cat $STORAGE_USER_KEY > ssh_keys/id_rsa_boot_storage'
+                    sh 'chmod 400 ssh_keys/id_rsa_boot_storage'
+                    sh 'scp -o "StrictHostKeyChecking=no" -i ssh_keys/id_rsa_boot_storage output-ubuntu18.04_baseos/* $STORAGE_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/'
                 }
             }
         }
