@@ -39,7 +39,7 @@ pipeline {
                         )
                 ]) {
                     sh 'cat $STORAGE_USER_KEY > ssh_keys/id_rsa_boot_storage'
-                    sh 'scp -i ssh_keys/id_rsa_boot_storage output-ubuntu18.04_baseos/* $STORAGE_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/'
+                    sh 'scp -o "StrictHostKeyChecking=no" -i ssh_keys/id_rsa_boot_storage output-ubuntu18.04_baseos/* $STORAGE_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/'
                 }
             }
         }
