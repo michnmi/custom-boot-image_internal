@@ -49,6 +49,5 @@ pipeline {
                     sh 'make clean'
                 }
             }
-        }
     }
 }
