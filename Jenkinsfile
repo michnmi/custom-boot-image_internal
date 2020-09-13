@@ -33,14 +33,15 @@ pipeline {
             steps {
                 withCredentials([
                     sshUserPrivateKey(
-                        credentialsId: 'jenkins-boot-volume',
-                        keyFileVariable: 'STORAGE_USER_KEY',
-                        usernameVariable: 'STORAGE_USER_NAME'
+                        credentialsId: 'jenkins-automation-user',
+                        keyFileVariable: 'JENKINS_USER_KEY',
+                        usernameVariable: 'JENKINS_USER_NAME'
                         )
                 ]) {
-                    sh 'cat $STORAGE_USER_KEY > ssh_keys/id_rsa_boot_storage'
-                    sh 'chmod 400 ssh_keys/id_rsa_boot_storage'
-                    sh 'scp -o "StrictHostKeyChecking=no" -i ssh_keys/id_rsa_boot_storage output-ubuntu18.04_baseos/ubuntu18.04_baseos.qcow2 $STORAGE_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2'
+                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
+                    sh 'chmod 400 ssh_keys/id_ed25519_jenkins'
+                    sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
+                    sh 'rsync -a  --rsync-path="sudo rsync"  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" output-ubuntu18.04_baseos/ubuntu18.04_baseos.qcow2 $JENKINS_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2  --progress'
                 }
             }
         }
