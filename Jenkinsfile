@@ -38,9 +38,9 @@ pipeline {
                         usernameVariable: 'JENKINS_USER_NAME'
                         )
                 ]) {
-                    sh 'cat $STORAGE_USER_KEY > ssh_keys/id_ed25519'
+                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519'
                     sh 'chmod 400 ssh_keys/id_ed25519'
-                    sh 'scp -o "StrictHostKeyChecking=no" -i ssh_keys/id_ed25519 output-ubuntu18.04_baseos/ubuntu18.04_baseos.qcow2 $STORAGE_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2'
+                    sh 'scp -o "StrictHostKeyChecking=no" -i ssh_keys/id_ed25519 output-ubuntu18.04_baseos/ubuntu18.04_baseos.qcow2 $JENKINS_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2'
                 }
             }
         }
