@@ -40,7 +40,7 @@ pipeline {
                 ]) {
                     sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
                     sh 'chmod 400 ssh_keys/id_ed25519_jenkins'
-                    sh "sed -e '/^$/d' ssh_keys/id_ed25519_jenkins"
+                    sh 'sed -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
                     sh 'rsync -a  --rsync-path="sudo rsync"  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" output-ubuntu18.04_baseos/ubuntu18.04_baseos.qcow2 $JENKINS_USER_NAME@192.168.122.1:/zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2  --progress'
                 }
             }
