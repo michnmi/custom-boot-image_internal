@@ -56,4 +56,11 @@ pipeline {
                 }
             }
     }
+    post {
+        failure {
+            steps {
+                sh 'make clean'
+            }
+        }
+    }
 }
