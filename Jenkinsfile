@@ -21,13 +21,16 @@ pipeline {
         }
         stage('Build cloud VM') {
             steps {
-                withCredentials([
-                    string(
-                            credentialsId: 'Ansible-Vault password',
-                            variable: 'VAULT_PASSWD'
-                        )
-                ]) {
-                    sh 'make build'
+                retry(3) {
+                    withCredentials([
+                        string(
+                                credentialsId: 'Ansible-Vault password',
+                                variable: 'VAULT_PASSWD'
+                            )
+                    ]) {
+                        sh 'make clean'
+                        sh 'make build'
+                    }
                 }
             }
         }
