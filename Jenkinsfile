@@ -22,7 +22,7 @@ pipeline {
         }
         stage('Chenck notifications') {
             steps {
-                githubNotify account: 'michnmi', context: 'blah', credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'PENDING', targetUrl: "$env.JENKINS_URL"
+                githubNotify account: 'michnmi', context: "$env.JOB_BASE_NAME - $env.BUILD_DISPLAY_NAME", credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'PENDING', targetUrl: "$env.RUN_DISPLAY_URL"
             }
         }
     }
