@@ -21,7 +21,7 @@ pipeline {
         }
         stage('Chenck notifications') {
             steps {
-                githubNotify account: 'michnmi', context: '', credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'https://github.com/michnmi/custom-boot-image_internal', sha: '', status: 'PENDING', targetUrl: ''
+                githubNotify account: '', context: '', credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'https://github.com/michnmi/custom-boot-image_internal', sha: '', status: 'PENDING', targetUrl: ''
             }
         }
     }
