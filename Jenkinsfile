@@ -15,6 +15,7 @@ pipeline {
                         sh 'cat $SSH_KEY_FILE > ssh_keys/id_rsa_packer'
                         sh "curl --silent https://cloud-images.ubuntu.com/releases/bionic/release/SHA256SUMS | awk  '/ubuntu-18.04-server-cloudimg-amd64.img/ {print \$1}' > iso_256_checksum.txt" 
                         sh 'sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/$(cat iso_256_checksum.txt)/g" variables.json'
+                        sh 'env'
                     }                    
                 }
             }
