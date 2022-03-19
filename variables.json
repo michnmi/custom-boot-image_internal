@@ -2,7 +2,7 @@
     "disk_size": "12288",
   
     "source_iso_url": "https://cloud-images.ubuntu.com/releases/bionic/release-20210928/ubuntu-18.04-server-cloudimg-amd64.img",
-    "source_iso_checksum": "5c410839a4643372f7f7b6b8b54ad749b90b7900660dfc36dab443d4eb1abb8d",
+    "source_iso_checksum": "REPLACE_THIS_WITH_ACTUAL_VALUE",
   
     "output_vm_name": "ubuntu18.04_baseos.qcow2",
     "output_iso_checksum_path": "/tmp/ubuntu18.04_baseos_sha256.checksums",
