@@ -7,3 +7,7 @@ cloud-init clean --logs
 
 echo "Remove key"
 rm /home/packer/.ssh/authorized_keys
+
+echo "Remove ansible"
+sudo apt-get remove -y ansible
+sudo apt autoremove -y
