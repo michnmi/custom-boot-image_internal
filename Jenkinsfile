@@ -66,9 +66,9 @@ pipeline {
                     sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
                     sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
                     sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo mv ubuntu18.04_baseos.qcow2 ubuntu18.04_baseos_previous.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo cp ubuntu18.04_baseos_latest.qcow2 ubuntu18.04_baseos.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo chown libvirt-qemu:kvm ubuntu18.04_baseos.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo mv /zpools/vmhost_qcow/boot/ubuntu18.04_baseos.qcow2 /zpools/vmhost_qcow/boot/ubuntu18.04_baseos_previous.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo cp /zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2 /zpools/vmhost_qcow/boot/ubuntu18.04_baseos.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo chown libvirt-qemu:kvm /zpools/vmhost_qcow/boot/ubuntu18.04_baseos.qcow2"'
                 }
             }
         }
@@ -84,9 +84,9 @@ pipeline {
                     sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
                     sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
                     sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo mv ubuntu18.04_baseos.qcow2 ubuntu18.04_baseos_previous.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo cp ubuntu18.04_baseos_latest.qcow2 ubuntu18.04_baseos.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo chown libvirt-qemu:kvm ubuntu18.04_baseos.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo mv /zpools/vmhost_qcow/boot/ubuntu18.04_baseos.qcow2 /zpools/vmhost_qcow/boot/ubuntu18.04_baseos_previous.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo cp /zpools/vmhost_qcow/boot/ubuntu18.04_baseos_latest.qcow2 /zpools/vmhost_qcow/boot/ubuntu18.04_baseos.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo chown libvirt-qemu:kvm /zpools/vmhost_qcow/boot/ubuntu18.04_baseos.qcow2"'
                 }
             }
         }
