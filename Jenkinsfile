@@ -54,6 +54,42 @@ pipeline {
                 }
             }
         }
+        stage('Update image to be used - vmhost01.') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'jenkins-automation-user',
+                        keyFileVariable: 'JENKINS_USER_KEY',
+                        usernameVariable: 'JENKINS_USER_NAME'
+                        )
+                ]) {
+                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
+                    sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
+                    sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo mv ubuntu18.04_baseos.qcow2 ubuntu18.04_baseos_previous.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo cp ubuntu18.04_baseos_latest.qcow2 ubuntu18.04_baseos.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo chown libvirt-qemu:kvm ubuntu18.04_baseos.qcow2"'
+                }
+            }
+        }
+        stage('Update image to be used - vmhost02.') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'jenkins-automation-user',
+                        keyFileVariable: 'JENKINS_USER_KEY',
+                        usernameVariable: 'JENKINS_USER_NAME'
+                        )
+                ]) {
+                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
+                    sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
+                    sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo mv ubuntu18.04_baseos.qcow2 ubuntu18.04_baseos_previous.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo cp ubuntu18.04_baseos_latest.qcow2 ubuntu18.04_baseos.qcow2"'
+                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost02 "sudo chown libvirt-qemu:kvm ubuntu18.04_baseos.qcow2"'
+                }
+            }
+        }
         stage('Clean up everything') {
             steps {
                     sh 'make clean'
