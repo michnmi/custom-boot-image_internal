@@ -94,7 +94,7 @@ pipeline {
             steps {
                     sh 'make clean'
                        githubNotify account: 'michnmi', context: "$env.JOB_BASE_NAME - $env.BUILD_DISPLAY_NAME", credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'SUCCESS', targetUrl: "$env.RUN_DISPLAY_URL"
-                       slackSend color: "good", message: 'Custom boot image has been built. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)'
+                       slackSend color: "good", message: "Custom boot image has been built. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)"
                 }
             }
     }
@@ -102,7 +102,7 @@ pipeline {
         failure {
             sh 'make clean'
                 githubNotify account: 'michnmi', context: "$env.JOB_BASE_NAME - $env.BUILD_DISPLAY_NAME", credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'FAILURE', targetUrl: "$env.RUN_DISPLAY_URL"
-                slackSend color: "danger", message: 'Custom boot image has failed building. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)'
+                slackSend color: "danger", message: "Custom boot image has failed building. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)"
         }
     }
 }
