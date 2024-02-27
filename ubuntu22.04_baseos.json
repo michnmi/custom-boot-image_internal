@@ -1,0 +1,37 @@
+{
+  "_comment": "sudo  -u packer  -s /bin/bash; PACKER_LOG=1 packer build  -var-file variables-22.04.json ubuntu22.04_baseos.json",
+  "description": "KVM VM based on Ubuntu 22.04 LTS",
+  "variables": {
+    "vault_password": "{{ env `VAULT_PASSWD` }}"
+  },
+  "builders": [
+    {
+      "name": "ubuntu22.04_baseos",
+      "type": "qemu",
+      "accelerator": "kvm",
+      "vm_name": "{{ user `output_vm_name` }}",
+      "format": "qcow2",
+      "iso_url": "{{ user `source_iso_url` }}",
+      "iso_checksum": "sha256:{{ user `source_iso_checksum` }}",
+      "disk_image": true,
+      "disk_size": "{{ user `disk_size`}}",
+      "disk_interface": "virtio-scsi",
+      "disk_discard": "unmap",
+      "disk_compression": true,
+      "skip_compaction": false,
+      "headless": true,
+      "ssh_username": "{{ user `ssh_username` }}",
+      "ssh_private_key_file": "ssh_keys/id_rsa_packer",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+      "shutdown_command": "echo 'shutdown -P now' > /tmp/shutdown.sh; sudo -S sh '/tmp/shutdown.sh'",
+      "http_directory": "cloud-init/ubuntu18.04_baseos",
+      "qemuargs": [
+        [
+          "-smbios",
+          "type=1,serial=ds=nocloud-net;instance-id=packer;seedfrom=http://{{ .HTTPIP }}:{{ .HTTPPort }}/"
+        ]
+      ]
+    }
+  ]
+}
