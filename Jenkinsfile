@@ -30,7 +30,8 @@ pipeline {
                             )
                     ]) {
                         sh 'make clean'
-                        sh 'echo "make build"'
+                        sh 'make generate_iso'
+                        sh 'make build'
                     }
                 }
             }
@@ -108,8 +109,8 @@ pipeline {
                             )
                     ]) {
                         sh 'make clean'
-                        sh 'make generate_iso'
-                        sh 'make build_22'
+                        sh 'echo "make generate_iso"'
+                        sh 'echo "make build_22"'
                     }
                 }
             }
