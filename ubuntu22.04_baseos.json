@@ -25,12 +25,8 @@
       "ssh_port": 22,
       "ssh_wait_timeout": "10000s",
       "shutdown_command": "echo 'shutdown -P now' > /tmp/shutdown.sh; sudo -S sh '/tmp/shutdown.sh'",
-      "http_directory": "cloud-init/ubuntu18.04_baseos",
       "qemuargs": [
-        [
-          "-smbios",
-          "type=1,serial=ds=nocloud-net;instance-id=packer;seedfrom=http://{{ .HTTPIP }}:{{ .HTTPPort }}/"
-        ]
+        [ "-cdrom", "cloud-init/ubuntu22.04_baseos/nocloud.iso" ]
       ]
     }
   ]

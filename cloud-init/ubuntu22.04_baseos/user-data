@@ -1,0 +1,10 @@
+#cloud-config
+users:
+  - name: packer
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDeHSzm1wkRFgHACYY2juoTeyRsAzHuZ/fBMbn7VVIKC7DyxzC/fPf+YkDCuBZTobsTipKSnBOrCpEPSjFuxTRqQtS626Dy2kVev7QB+4tF/jvOqk+7MlfvWxxWtg+KrZ+JjmWCQdNQTUtv3Ktm9cnPA34Zx7BZRd5l2RcaXoWIbwqB3PYCIemcLZZ6AgpZvJ4GQLEJWtwA41i3USq+LTPjYeFE4/53EVYT2Q3m3Io2OByl9hc0LGtXsZtWPGfC1QS0yEuTGtpqHdRPmmInj0Y201GeLNscNQt+jxU9ZozwX4c7RGX0qjw33ornbMyJVyMWIF7KYVxjvNcyfqPTKI8Q1eN+2x+5Hz4VaQLsqD5SrLMBuXCKOtVITPcdd2pFhTIW7rhUGIgL6qZ5sDT/UMQea7L4ql7ixgLGlHEY/DyhKipEq4kbsMW9vOoaQ/x7kaFnnSAOrYE3zG77slMqQuN4dIWZ6r0/FD2ZwS6PzU6OJ4+J1ZQgd/r6aQua+xGfRY/x3AgnERFYp+qOh4CyJs9o6k1H0LNhD1xeoj0acPa3F0Uo6ghFwweLFsek5gL1aOtdqHjPu9HzfGhL8QGS+vjIRPf+jnGvfjLCl5g9kcfQW3QEh/DvfsZAIaQjEzZNr6ULs8q90qaGGg+TEcGsv+yTJqAMe3m27RwkVNC2HDf/dQ== michalis.michaloliakos@gmail.com
+    uid: 999
+    no_create_home: false
+apt:
+  preserve_sources_list: true
