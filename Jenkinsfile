@@ -14,9 +14,9 @@ pipeline {
                     ]) {
                         sh 'cat $SSH_KEY_FILE > ssh_keys/id_rsa_packer'
                         sh "curl --silent https://cloud-images.ubuntu.com/releases/bionic/release/SHA256SUMS | awk  '/ubuntu-18.04-server-cloudimg-amd64.img/ {print \$1}' > iso_256_checksum-18.04.txt" 
-                        sh 'sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/$(cat iso_256_checksum-18.04.txt)/g" variables.json'
+                        sh 'sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/$(cat iso_256_checksum-18.04.txt)/g" variables-18.04.json'
                         sh "curl --silent https://cloud-images.ubuntu.com/releases/22.04/release/SHA256SUMS | awk  '/ubuntu-22.04-server-cloudimg-amd64.img/ {print \$1}' > iso_256_checksum-22.04.txt" 
-                        sh 'sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/$(cat iso_256_checksum-22.04.txt)/g" variables.json'
+                        sh 'sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/$(cat iso_256_checksum-22.04.txt)/g" variables-22.04.json'
                     }                    
                 }
             }
