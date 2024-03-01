@@ -48,7 +48,6 @@ pipeline {
                                 variable: 'VAULT_PASSWD'
                             )
                     ]) {
-                        sh 'make clean'
                         sh 'make generate_iso'
                         sh 'make build_22'
                     }
