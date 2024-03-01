@@ -1,5 +1,5 @@
 build:
-	PACKER_LOG=1 PACKER_LOG_PATH=build.log packer build  -var-file variables.json ubuntu18.04_baseos.json
+	PACKER_LOG=1 PACKER_LOG_PATH=build.log packer build  -var-file variables-18.04.json ubuntu18.04_baseos.json
 clean:
 	rm -rf output*
 	rm -rf cloud-init/ubuntu22.04_baseos/nocloud.iso
