@@ -120,7 +120,7 @@ pipeline {
                 mkdir -p ssh_keys
                 cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
                 chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^$/d' ssh_keys/id_ed25519_jenkins
+                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
 
                 rsync -a --rsync-path="sudo rsync" \\
                   -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
@@ -160,7 +160,7 @@ pipeline {
                 mkdir -p ssh_keys
                 cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
                 chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^$/d' ssh_keys/id_ed25519_jenkins
+                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
 
                 ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
                   "${JENKINS_USER_NAME}@${host}" \\
