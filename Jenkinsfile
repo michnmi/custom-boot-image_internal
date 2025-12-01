@@ -1,110 +1,231 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Prepare build') {
-            steps {
-                checkout scm
-                script {
-                    withCredentials([
-                        sshUserPrivateKey(
-                            credentialsId: 'packer-ssh-pair',
-                            keyFileVariable: 'SSH_KEY_FILE'
-                        )
-                    ]) {
-                        sh 'cat $SSH_KEY_FILE > ssh_keys/id_rsa_packer'
-                        sh "curl --silent https://cloud-images.ubuntu.com/releases/jammy/release/SHA256SUMS | awk  '/ubuntu-22.04-server-cloudimg-amd64.img/ {print \$1}' > iso_256_checksum-22.04.txt" 
-                        sh 'sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/$(cat iso_256_checksum-22.04.txt)/g" variables-22.04.json'
-                    }                    
-                }
-            }
-        }
-        stage('Build cloud VM') {
-            steps {
-              //  githubNotify account: 'michnmi', context: "$env.JOB_BASE_NAME - $env.BUILD_DISPLAY_NAME", credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'PENDING', targetUrl: "$env.RUN_DISPLAY_URL"
-                retry(3) {
-                    withCredentials([
-                        string(
-                                credentialsId: 'Ansible-Vault password',
-                                variable: 'VAULT_PASSWD'
-                            )
-                    ]) {
-                        sh 'make clean'
-                        sh 'make generate_iso'
-                        sh 'make build'
-                    }
-                }
-            }
-        }
-        stage('Send qcow over to vmhosts') {
-            steps {
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'jenkins-automation-user',
-                        keyFileVariable: 'JENKINS_USER_KEY',
-                        usernameVariable: 'JENKINS_USER_NAME'
-                        )
-                ]) {
-                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
-                    sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
-                    sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
-                    sh 'rsync -a  --rsync-path="sudo rsync"  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" output-ubuntu22.04_baseos/ubuntu22.04_baseos.qcow2 $JENKINS_USER_NAME@vmhost01:/vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2  --progress'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo chown libvirt-qemu:kvm /vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo chmod 660 /vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2"'
-                    sh 'rsync -a  --rsync-path="sudo rsync"  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" output-ubuntu22.04_baseos/ubuntu22.04_baseos.qcow2 $JENKINS_USER_NAME@vmhost03:/vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2  --progress'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost03 "sudo chown libvirt-qemu:kvm /vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost03 "sudo chmod 660 /vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2"'
-                }
-            }
-        }
-        stage('Update image to be used - vmhost01.') {
-            steps {
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'jenkins-automation-user',
-                        keyFileVariable: 'JENKINS_USER_KEY',
-                        usernameVariable: 'JENKINS_USER_NAME'
-                        )
-                ]) {
-                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
-                    sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
-                    sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo mv /vmhost_qcow/boot/ubuntu22.04_baseos.qcow2 /vmhost_qcow/boot/ubuntu22.04_baseos_previous.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost01 "sudo cp -p /vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2 /vmhost_qcow/boot/ubuntu22.04_baseos.qcow2"'
-                }
-            }
-        }
-        stage('Update image to be used - vmhost03.') {
-            steps {
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'jenkins-automation-user',
-                        keyFileVariable: 'JENKINS_USER_KEY',
-                        usernameVariable: 'JENKINS_USER_NAME'
-                        )
-                ]) {
-                    sh 'cat $JENKINS_USER_KEY > ssh_keys/id_ed25519_jenkins'
-                    sh 'chmod 600 ssh_keys/id_ed25519_jenkins'
-                    sh 'sed -i -e \'/^$/d\' ssh_keys/id_ed25519_jenkins'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost03 "sudo mv /vmhost_qcow/boot/ubuntu22.04_baseos.qcow2 /vmhost_qcow/boot/ubuntu22.04_baseos_previous.qcow2"'
-                    sh 'ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins $JENKINS_USER_NAME@vmhost03 "sudo cp -p /vmhost_qcow/boot/ubuntu22.04_baseos_latest.qcow2 /vmhost_qcow/boot/ubuntu22.04_baseos.qcow2"'
-                }
-            }
+  triggers {
+    cron('H 0 * * *')
+    pollSCM('*/3 * * * *')
+  }
+
+  // Global constants / IDs
+  environment {
+    // GitHub status reporting
+    GITHUB_ACCOUNT   = 'michnmi'
+    GITHUB_REPO      = 'custom-boot-image_internal'
+    GITHUB_CREDS_ID  = 'jenkins-ansible-lint'
+    GITHUB_CONTEXT   = 'qcow-build'
+
+    PACKER_SSH_CRED_ID    = 'packer-ssh-pair'
+    VAULT_PASSWORD_CRED_ID = 'Ansible-Vault password'
+    JENKINS_SSH_CRED_ID   = 'jenkins-automation-user'
+  }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+
+    stage('Checkout & prepare') {
+      steps {
+        checkout scm
+
+        script {
+          // What commit are we building? Useful for githubNotify
+          env.COMMIT_SHA = sh(
+            script: 'git rev-parse HEAD',
+            returnStdout: true
+          ).trim()
+
+          echo "Building commit ${env.COMMIT_SHA} on branch ${env.BRANCH_NAME ?: 'N/A'}"
+
+          // Let GitHub know we’ve started
+          githubNotify(
+            credentialsId: env.GITHUB_CREDS_ID,
+            account:       env.GITHUB_ACCOUNT,
+            repo:          env.GITHUB_REPO,
+            sha:           env.COMMIT_SHA,
+            context:       env.GITHUB_CONTEXT,
+            status:        'PENDING',
+            description:   'Building qcow image…'
+          )
         }
 
-        stage('Clean up everything') {
-            steps {
-                    sh 'make clean'
-                       // githubNotify account: 'michnmi', context: "$env.JOB_BASE_NAME - $env.BUILD_DISPLAY_NAME", credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'SUCCESS', targetUrl: "$env.RUN_DISPLAY_URL"
-                       slackSend color: "good", message: "Custom boot image has been built. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)"
-                }
-            }
-    }
-    post {
-        failure {
-            sh 'make clean'
-          //      githubNotify account: 'michnmi', context: "$env.JOB_BASE_NAME - $env.BUILD_DISPLAY_NAME", credentialsId: 'Github credentials', description: '', gitApiUrl: '', repo: 'custom-boot-image_internal', sha: "$env.GIT_COMMIT", status: 'FAILURE', targetUrl: "$env.RUN_DISPLAY_URL"
-                slackSend color: "danger", message: "Custom boot image has failed building. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)"
+        // Prepare SSH key for packer
+        withCredentials([
+          sshUserPrivateKey(
+            credentialsId: env.PACKER_SSH_CRED_ID,
+            keyFileVariable: 'SSH_KEY_FILE'
+          )
+        ]) {
+          sh '''
+            set -eu
+            mkdir -p ssh_keys
+            cat "$SSH_KEY_FILE" > ssh_keys/id_rsa_packer
+            chmod 600 ssh_keys/id_rsa_packer
+          '''
         }
+
+        // Fetch checksum and inject into variables file
+        sh """
+          set -eu
+          curl --silent "${params.UBUNTU_CHECKSUM_URL}" \\
+            | awk '/${params.UBUNTU_IMAGE_NAME//\//\\/}/ {print \$1}' \\
+            > "${params.UBUNTU_CHECKSUM_FILE}"
+
+          sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/\$(cat ${params.UBUNTU_CHECKSUM_FILE})/g" "${params.VARS_FILE}"
+        """
+      }
     }
+
+    stage('Build cloud VM qcow') {
+      steps {
+        retry(3) {
+          withCredentials([
+            string(
+              credentialsId: env.VAULT_PASSWORD_CRED_ID,
+              variable: 'VAULT_PASSWD'
+            )
+          ]) {
+            sh '''
+              set -eu
+              make clean
+              make generate_iso
+              make build
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Send qcow to vmhosts') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(
+            credentialsId: env.JENKINS_SSH_CRED_ID,
+            keyFileVariable: 'JENKINS_USER_KEY',
+            usernameVariable: 'JENKINS_USER_NAME'
+          )
+        ]) {
+          script {
+            def qcowLocal   = "${params.QCOW_OUTPUT_DIR}/${params.QCOW_OUTPUT_NAME}"
+            def latestName  = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
+
+            ['VMHOST1', 'VMHOST2'].each { hostParam ->
+              def host = params[hostParam]
+              echo "Syncing qcow to ${host}"
+
+              sh """
+                set -eu
+                mkdir -p ssh_keys
+                cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
+                chmod 600 ssh_keys/id_ed25519_jenkins
+                sed -i -e '/^$/d' ssh_keys/id_ed25519_jenkins
+
+                rsync -a --rsync-path="sudo rsync" \\
+                  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
+                  "${qcowLocal}" \\
+                  "${JENKINS_USER_NAME}@${host}:${latestName}" --progress
+
+                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
+                  "${JENKINS_USER_NAME}@${host}" \\
+                  "sudo chown libvirt-qemu:kvm ${latestName} && sudo chmod 660 ${latestName}"
+              """
+            }
+          }
+        }
+      }
+    }
+
+    stage('Activate new image on vmhosts') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(
+            credentialsId: env.JENKINS_SSH_CRED_ID,
+            keyFileVariable: 'JENKINS_USER_KEY',
+            usernameVariable: 'JENKINS_USER_NAME'
+          )
+        ]) {
+          script {
+            def currentName = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos.qcow2"
+            def previousName = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_previous.qcow2"
+            def latestName   = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
+
+            ['VMHOST1', 'VMHOST2'].each { hostParam ->
+              def host = params[hostParam]
+              echo "Activating new image on ${host}"
+
+              sh """
+                set -eu
+                mkdir -p ssh_keys
+                cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
+                chmod 600 ssh_keys/id_ed25519_jenkins
+                sed -i -e '/^$/d' ssh_keys/id_ed25519_jenkins
+
+                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
+                  "${JENKINS_USER_NAME}@${host}" \\
+                  "sudo mv ${currentName} ${previousName} || true && \\
+                   sudo cp -p ${latestName} ${currentName}"
+              """
+            }
+          }
+        }
+      }
+    }
+
+    stage('Clean up') {
+      steps {
+        sh '''
+          set +e
+          make clean
+        '''
+      }
+    }
+  }
+
+  post {
+    success {
+      script {
+        githubNotify(
+          credentialsId: env.GITHUB_CREDS_ID,
+          account:       env.GITHUB_ACCOUNT,
+          repo:          env.GITHUB_REPO,
+          sha:           env.COMMIT_SHA,
+          context:       env.GITHUB_CONTEXT,
+          status:        'SUCCESS',
+          description:   'qcow image build and deploy succeeded'
+        )
+      }
+
+      slackSend(
+        color: "good",
+        message: "Custom boot image has been built and deployed. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)"
+      )
+    }
+
+    failure {
+      script {
+        // Best effort cleanup
+        sh '''
+          set +e
+          make clean
+        '''
+
+        githubNotify(
+          credentialsId: env.GITHUB_CREDS_ID,
+          account:       env.GITHUB_ACCOUNT,
+          repo:          env.GITHUB_REPO,
+          sha:           env.COMMIT_SHA ?: env.GIT_COMMIT,
+          context:       env.GITHUB_CONTEXT,
+          status:        'FAILURE',
+          description:   'qcow image build or deploy failed'
+        )
+      }
+
+      slackSend(
+        color: "danger",
+        message: "Custom boot image build FAILED. (<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>)"
+      )
+    }
+  }
 }
