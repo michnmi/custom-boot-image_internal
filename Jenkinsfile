@@ -157,31 +157,53 @@ pipeline {
           )
         ]) {
           script {
-            def currentName = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos.qcow2"
+            def currentName  = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos.qcow2"
             def previousName = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_previous.qcow2"
             def latestName   = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
-
+            def archiveDir   = "${params.QCOW_REMOTE_PATH}/archive"
+            def retentionDays = 7   // keep a week’s worth
+    
             ['VMHOST1', 'VMHOST2'].each { hostParam ->
               def host = params[hostParam]
               echo "Activating new image on ${host}"
-
+    
               sh """
                 set -eu
                 mkdir -p ssh_keys
                 cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
                 chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
-
+                sed -i -e '/^\\\$/d' ssh_keys/id_ed25519_jenkins
+    
                 ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
                   "${JENKINS_USER_NAME}@${host}" \\
-                  "sudo mv ${currentName} ${previousName} || true && \\
-                   sudo cp -p ${latestName} ${currentName}"
+                  "set -eu
+                   ts=\\\$(date +%Y-%m-%dT%H%M%S)
+                   archive_dir='${archiveDir}'
+                   archive_name=\\\"\${archive_dir}/ubuntu22.04_baseos_\\\${ts}.qcow2\\\"
+    
+                   sudo mkdir -p \\\${archive_dir}
+    
+                   # Move current to previous if it exists (for quick rollback)
+                   if [ -f '${currentName}' ]; then
+                     sudo mv '${currentName}' '${previousName}' || true
+                   fi
+    
+                   # Copy latest to current (this is what VMs will use)
+                   sudo cp -p '${latestName}' '${currentName}'
+    
+                   # Save a timestamped archive of the latest image
+                   sudo cp -p '${latestName}' \\\${archive_name}
+    
+                   # Prune archives older than ${retentionDays} days
+                   sudo find \\\${archive_dir} -name 'ubuntu22.04_baseos_*.qcow2' -type f -mtime +${retentionDays} -print -delete
+                  "
               """
             }
           }
         }
       }
     }
+
 
     stage('Clean up') {
       steps {
