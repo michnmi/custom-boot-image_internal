@@ -6,12 +6,11 @@ pipeline {
     pollSCM('*/3 * * * *')
   }
 
-  // Global constants / IDs
-  environment {
-    // GitHub status reporting
+  
+  environment {  
     GITHUB_ACCOUNT   = 'michnmi'
     GITHUB_REPO      = 'custom-boot-image_internal'
-    GITHUB_CREDS_ID  = 'jenkins-ansible-lint'
+    GITHUB_CREDS_ID  = 'custom-vm-build'
     GITHUB_CONTEXT   = 'qcow-build'
 
     PACKER_SSH_CRED_ID    = 'packer-ssh-pair'
