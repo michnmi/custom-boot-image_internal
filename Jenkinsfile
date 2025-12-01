@@ -157,11 +157,11 @@ pipeline {
           )
         ]) {
           script {
-            def currentName  = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos.qcow2"
-            def previousName = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_previous.qcow2"
-            def latestName   = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
-            def archiveDir   = "${params.QCOW_REMOTE_PATH}/archive"
-            def retentionDays = 7   // keep a week’s worth
+            def currentName   = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos.qcow2"
+            def previousName  = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_previous.qcow2"
+            def latestName    = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
+            def archiveDir    = "${params.QCOW_REMOTE_PATH}/archive"
+            def retentionDays = 7
     
             ['VMHOST1', 'VMHOST2'].each { hostParam ->
               def host = params[hostParam]
@@ -176,7 +176,7 @@ pipeline {
     
                 ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
                   "${JENKINS_USER_NAME}@${host}" \\
-                  "set -eu
+                  "set -e
                    ts=\\\$(date +%Y-%m-%dT%H%M%S)
                    archive_dir='${archiveDir}'
                    archive_name=\\\"\${archive_dir}/ubuntu22.04_baseos_\\\${ts}.qcow2\\\"
@@ -203,6 +203,7 @@ pipeline {
         }
       }
     }
+
 
 
     stage('Clean up') {
