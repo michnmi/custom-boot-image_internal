@@ -67,14 +67,14 @@ pipeline {
         }
 
         // Fetch checksum and inject into variables file
-        sh """
-          set -eu
-          curl --silent "${params.UBUNTU_CHECKSUM_URL}" \\
-            | awk '/${params.UBUNTU_IMAGE_NAME//\//\\/}/ {print \$1}' \\
-            > "${params.UBUNTU_CHECKSUM_FILE}"
-
-          sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/\$(cat ${params.UBUNTU_CHECKSUM_FILE})/g" "${params.VARS_FILE}"
-        """
+          sh """
+            set -eu
+            curl --silent "${params.UBUNTU_CHECKSUM_URL}" \\
+              | awk -v img="${params.UBUNTU_IMAGE_NAME}" '\$2 == img {print \$1}' \\
+              > "${params.UBUNTU_CHECKSUM_FILE}"
+          
+            sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/\$(cat ${params.UBUNTU_CHECKSUM_FILE})/g" "${params.VARS_FILE}"
+          """
       }
     }
 
