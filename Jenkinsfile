@@ -30,7 +30,6 @@ pipeline {
         checkout scm
 
         script {
-          // What commit are we building? Useful for githubNotify
           env.COMMIT_SHA = sh(
             script: 'git rev-parse HEAD',
             returnStdout: true
@@ -38,7 +37,6 @@ pipeline {
 
           echo "Building commit ${env.COMMIT_SHA} on branch ${env.BRANCH_NAME ?: 'N/A'}"
 
-          // Let GitHub know we’ve started
           githubNotify(
             credentialsId: env.GITHUB_CREDS_ID,
             account:       env.GITHUB_ACCOUNT,
@@ -68,12 +66,25 @@ pipeline {
         // Fetch checksum and inject into variables file
           sh """
             set -eu
+            echo "Fetching checksum for image: ${params.UBUNTU_IMAGE_NAME}"
             curl --silent "${params.UBUNTU_CHECKSUM_URL}" \\
-              | awk -v img="${params.UBUNTU_IMAGE_NAME}" '\$2 == img {print \$1}' \\
+              | awk -v img="${params.UBUNTU_IMAGE_NAME}" 'index(\$2, img) > 0 {print \$1; exit}' \\
               > "${params.UBUNTU_CHECKSUM_FILE}"
           
+            echo "Checksum file content:"
+            cat "${params.UBUNTU_CHECKSUM_FILE}"
+          
+            if [ ! -s "${params.UBUNTU_CHECKSUM_FILE}" ]; then
+              echo "ERROR: checksum file is empty. Check UBUNTU_CHECKSUM_URL / UBUNTU_IMAGE_NAME."
+              exit 1
+            fi
+          
             sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/\$(cat ${params.UBUNTU_CHECKSUM_FILE})/g" "${params.VARS_FILE}"
+          
+            echo "Snippet of updated vars file:"
+            grep -n 'sha256\\|REPLACE_THIS_WITH_ACTUAL_VALUE' "${params.VARS_FILE}" || true
           """
+
       }
     }
 
