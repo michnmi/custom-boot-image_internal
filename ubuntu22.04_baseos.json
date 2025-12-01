@@ -23,7 +23,7 @@
       "ssh_username": "{{ user `ssh_username` }}",
       "ssh_private_key_file": "ssh_keys/id_rsa_packer",
       "ssh_port": 22,
-      "ssh_wait_timeout": "10000s",
+      "ssh_wait_timeout": "20000s",
       "shutdown_command": "echo 'shutdown -P now' > /tmp/shutdown.sh; sudo -S sh '/tmp/shutdown.sh'",
       "qemuargs": [
         [ "-cdrom", "cloud-init/ubuntu22.04_baseos/nocloud.iso" ]
