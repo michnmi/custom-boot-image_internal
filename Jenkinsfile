@@ -119,7 +119,7 @@ pipeline {
         ]) {
           script {
             def qcowLocal   = "${params.QCOW_OUTPUT_DIR}/${params.QCOW_OUTPUT_NAME}"
-            def latestName  = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
+            def latestName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos_latest.qcow2"
 
             ['VMHOST1', 'VMHOST2'].each { hostParam ->
               def host = params[hostParam]
@@ -157,9 +157,9 @@ pipeline {
           )
         ]) {
           script {
-            def currentName   = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos.qcow2"
-            def previousName  = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_previous.qcow2"
-            def latestName    = "${params.QCOW_REMOTE_PATH}/ubuntu22.04_baseos_latest.qcow2"
+            def currentName   = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos.qcow2"
+            def previousName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos_previous.qcow2"
+            def latestName    = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos_latest.qcow2"
             def archiveDir    = "${params.QCOW_REMOTE_PATH}/archive"
             def retentionDays = 7
 
