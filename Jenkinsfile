@@ -1,3 +1,5 @@
+def IMAGE_VERSIONS = []
+
 pipeline {
   agent any
 
@@ -30,6 +32,9 @@ pipeline {
         checkout scm
 
         script {
+          IMAGE_VERSIONS = params.IMAGE_VERSIONS.split(',').collect { it.trim() }
+          echo "Building versions: ${IMAGE_VERSIONS}"
+
           env.COMMIT_SHA = sh(
             script: 'git rev-parse HEAD',
             returnStdout: true
@@ -63,27 +68,34 @@ pipeline {
           '''
         }
 
-        // Fetch checksum and inject into variables file
-          sh """
-            set -eu
-            echo "Fetching checksum for image: ${params.UBUNTU_IMAGE_NAME}"
-            curl --silent "${params.UBUNTU_CHECKSUM_URL}" \\
-              | awk -v img="${params.UBUNTU_IMAGE_NAME}" 'index(\$2, img) > 0 {print \$1; exit}' \\
-              > "${params.UBUNTU_CHECKSUM_FILE}"
-          
-            echo "Checksum file content:"
-            cat "${params.UBUNTU_CHECKSUM_FILE}"
-          
-            if [ ! -s "${params.UBUNTU_CHECKSUM_FILE}" ]; then
-              echo "ERROR: checksum file is empty. Check UBUNTU_CHECKSUM_URL / UBUNTU_IMAGE_NAME."
-              exit 1
-            fi
-          
-            sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/\$(cat ${params.UBUNTU_CHECKSUM_FILE})/g" "${params.VARS_FILE}"
-          
-            echo "Snippet of updated vars file:"
-            grep -n 'sha256\\|REPLACE_THIS_WITH_ACTUAL_VALUE' "${params.VARS_FILE}" || true
-          """
+        // Fetch and inject the real checksum into every version's vars file
+        script {
+          IMAGE_VERSIONS.each { v ->
+            def varsFile = "variables-${v}.json"
+            sh """
+              set -eu
+              sourceUrl=\$(grep -oP '"source_iso_url":\\s*"\\K[^"]+' "${varsFile}")
+              imageName=\$(basename "\$sourceUrl")
+              checksumUrl=\$(dirname "\$sourceUrl")/SHA256SUMS
+              checksumFile="/tmp/ubuntu${v}_sha256.checksum"
+
+              echo "Fetching checksum for \$imageName from \$checksumUrl"
+              curl --silent "\$checksumUrl" \\
+                | awk -v img="\$imageName" 'index(\$2, img) > 0 {print \$1; exit}' \\
+                > "\$checksumFile"
+
+              if [ ! -s "\$checksumFile" ]; then
+                echo "ERROR: checksum file is empty for ${v}. Check source_iso_url in ${varsFile}."
+                exit 1
+              fi
+
+              sed -ie "s/REPLACE_THIS_WITH_ACTUAL_VALUE/\$(cat \$checksumFile)/g" "${varsFile}"
+
+              echo "Snippet of updated ${varsFile}:"
+              grep -n 'sha256\\|REPLACE_THIS_WITH_ACTUAL_VALUE' "${varsFile}" || true
+            """
+          }
+        }
 
       }
     }
@@ -108,7 +120,7 @@ pipeline {
       }
     }
 
-    stage('Send qcow to vmhosts (Ubuntu 22.04)') {
+    stage('Send qcow to vmhosts') {
       steps {
         withCredentials([
           sshUserPrivateKey(
@@ -118,107 +130,35 @@ pipeline {
           )
         ]) {
           script {
-            def qcowLocal   = "${params.QCOW_OUTPUT_DIR}/${params.QCOW_OUTPUT_NAME}"
-            def latestName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos_latest.qcow2"
+            IMAGE_VERSIONS.each { v ->
+              def outputName = sh(
+                script: "grep -oP '\"output_vm_name\":\\s*\"\\K[^\"]+' variables-${v}.json",
+                returnStdout: true
+              ).trim()
+              def qcowLocal  = "${params.QCOW_OUTPUT_DIR}/${outputName}"
+              def latestName = "${params.QCOW_REMOTE_PATH}/boot/ubuntu${v}_baseos_latest.qcow2"
 
-            ['VMHOST1', 'VMHOST2'].each { hostParam ->
-              def host = params[hostParam]
-              echo "Syncing qcow to ${host}"
+              ['VMHOST1', 'VMHOST2'].each { hostParam ->
+                def host = params[hostParam]
+                echo "Syncing ubuntu${v} qcow to ${host}"
 
-              sh """
-                set -eu
-                mkdir -p ssh_keys
-                cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
-                chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
+                sh """
+                  set -eu
+                  mkdir -p ssh_keys
+                  cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
+                  chmod 600 ssh_keys/id_ed25519_jenkins
+                  sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
 
-                rsync -a --rsync-path="sudo rsync" \\
-                  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
-                  "${qcowLocal}" \\
-                  "${JENKINS_USER_NAME}@${host}:${latestName}" --progress
+                  rsync -a --rsync-path="sudo rsync" \\
+                    -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
+                    "${qcowLocal}" \\
+                    "${JENKINS_USER_NAME}@${host}:${latestName}" --progress
 
-                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
-                  "${JENKINS_USER_NAME}@${host}" \\
-                  "sudo chown libvirt-qemu:kvm ${latestName} && sudo chmod 660 ${latestName}"
-              """
-            }
-          }
-        }
-      }
-    }
-
-    stage('Send qcow to vmhosts (Ubuntu 24.04)') {
-      steps {
-        withCredentials([
-          sshUserPrivateKey(
-            credentialsId: env.JENKINS_SSH_CRED_ID,
-            keyFileVariable: 'JENKINS_USER_KEY',
-            usernameVariable: 'JENKINS_USER_NAME'
-          )
-        ]) {
-          script {
-            def qcowLocal   = "${params.QCOW_OUTPUT_DIR}/${params.QCOW_OUTPUT_NAME}"
-            def latestName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos_latest.qcow2"
-
-            ['VMHOST1', 'VMHOST2'].each { hostParam ->
-              def host = params[hostParam]
-              echo "Syncing qcow to ${host}"
-
-              sh """
-                set -eu
-                mkdir -p ssh_keys
-                cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
-                chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
-
-                rsync -a --rsync-path="sudo rsync" \\
-                  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
-                  "${qcowLocal}" \\
-                  "${JENKINS_USER_NAME}@${host}:${latestName}" --progress
-
-                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
-                  "${JENKINS_USER_NAME}@${host}" \\
-                  "sudo chown libvirt-qemu:kvm ${latestName} && sudo chmod 660 ${latestName}"
-              """
-            }
-          }
-        }
-      }
-    }
-
-    stage('Send qcow to vmhosts (Ubuntu 26.04)') {
-      steps {
-        withCredentials([
-          sshUserPrivateKey(
-            credentialsId: env.JENKINS_SSH_CRED_ID,
-            keyFileVariable: 'JENKINS_USER_KEY',
-            usernameVariable: 'JENKINS_USER_NAME'
-          )
-        ]) {
-          script {
-            def qcowLocal   = "${params.QCOW_OUTPUT_DIR}/${params.QCOW_OUTPUT_NAME}"
-            def latestName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu26.04_baseos_latest.qcow2"
-
-            ['VMHOST1', 'VMHOST2'].each { hostParam ->
-              def host = params[hostParam]
-              echo "Syncing qcow to ${host}"
-
-              sh """
-                set -eu
-                mkdir -p ssh_keys
-                cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
-                chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
-
-                rsync -a --rsync-path="sudo rsync" \\
-                  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
-                  "${qcowLocal}" \\
-                  "${JENKINS_USER_NAME}@${host}:${latestName}" --progress
-
-                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
-                  "${JENKINS_USER_NAME}@${host}" \\
-                  "sudo chown libvirt-qemu:kvm ${latestName} && sudo chmod 660 ${latestName}"
-              """
+                  ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
+                    "${JENKINS_USER_NAME}@${host}" \\
+                    "sudo chown libvirt-qemu:kvm ${latestName} && sudo chmod 660 ${latestName}"
+                """
+              }
             }
           }
         }
@@ -227,7 +167,7 @@ pipeline {
 
 
 
-    stage('Activate new image on vmhosts (Ubuntu 22.04)') {
+    stage('Activate new image on vmhosts') {
       steps {
         withCredentials([
           sshUserPrivateKey(
@@ -237,166 +177,50 @@ pipeline {
           )
         ]) {
           script {
-            def currentName   = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos.qcow2"
-            def previousName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos_previous.qcow2"
-            def latestName    = "${params.QCOW_REMOTE_PATH}/boot/ubuntu22.04_baseos_latest.qcow2"
-            def archiveDir    = "${params.QCOW_REMOTE_PATH}/archive"
             def retentionDays = 7
-
-            // One timestamp per pipeline run – same across hosts
+            // One timestamp per pipeline run – same across versions and hosts
             def ts = new Date().format("yyyy-MM-dd'T'HHmmss", TimeZone.getTimeZone('UTC'))
-            def archiveName = "${archiveDir}/ubuntu22.04_baseos_${ts}.qcow2"
 
-            ['VMHOST1', 'VMHOST2'].each { hostParam ->
-              def host = params[hostParam]
-              echo "Activating new image on ${host}"
+            IMAGE_VERSIONS.each { v ->
+              def currentName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu${v}_baseos.qcow2"
+              def previousName = "${params.QCOW_REMOTE_PATH}/boot/ubuntu${v}_baseos_previous.qcow2"
+              def latestName   = "${params.QCOW_REMOTE_PATH}/boot/ubuntu${v}_baseos_latest.qcow2"
+              def archiveDir   = "${params.QCOW_REMOTE_PATH}/archive"
+              def archiveName  = "${archiveDir}/ubuntu${v}_baseos_${ts}.qcow2"
 
-              sh """
-                set -eu
-                mkdir -p ssh_keys
-                # write Jenkins SSH key from env var to file
-                cat "\$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
-                chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\\\$/d' ssh_keys/id_ed25519_jenkins
+              ['VMHOST1', 'VMHOST2'].each { hostParam ->
+                def host = params[hostParam]
+                echo "Activating ubuntu${v} image on ${host}"
 
-                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
-                  "\$JENKINS_USER_NAME@${host}" \\
-                  "set -e
-                   sudo mkdir -p '${archiveDir}'
+                sh """
+                  set -eu
+                  mkdir -p ssh_keys
+                  # write Jenkins SSH key from env var to file
+                  cat "\$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
+                  chmod 600 ssh_keys/id_ed25519_jenkins
+                  sed -i -e '/^\\\$/d' ssh_keys/id_ed25519_jenkins
 
-                   # Move current to previous if it exists (for quick rollback)
-                   if [ -f '${currentName}' ]; then
-                     sudo mv '${currentName}' '${previousName}' || true
-                   fi
+                  ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
+                    "\$JENKINS_USER_NAME@${host}" \\
+                    "set -e
+                     sudo mkdir -p '${archiveDir}'
 
-                   # Copy latest to current (this is what VMs will use)
-                   sudo cp -p '${latestName}' '${currentName}'
+                     # Move current to previous if it exists (for quick rollback)
+                     if [ -f '${currentName}' ]; then
+                       sudo mv '${currentName}' '${previousName}' || true
+                     fi
 
-                   # Save a timestamped archive of the latest image
-                   sudo cp -p '${latestName}' '${archiveName}'
+                     # Copy latest to current (this is what VMs will use)
+                     sudo cp -p '${latestName}' '${currentName}'
 
-                   # Prune archives older than ${retentionDays} days
-                   sudo find '${archiveDir}' -name 'ubuntu22.04_baseos_*.qcow2' -type f -mtime +${retentionDays} -print -delete
-                  "
-              """
-            }
-          }
-        }
-      }
-    }
+                     # Save a timestamped archive of the latest image
+                     sudo cp -p '${latestName}' '${archiveName}'
 
-
-    stage('Activate new image on vmhosts (Ubuntu 24.04)') {
-      steps {
-        withCredentials([
-          sshUserPrivateKey(
-            credentialsId: env.JENKINS_SSH_CRED_ID,
-            keyFileVariable: 'JENKINS_USER_KEY',
-            usernameVariable: 'JENKINS_USER_NAME'
-          )
-        ]) {
-          script {
-            def currentName   = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos.qcow2"
-            def previousName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos_previous.qcow2"
-            def latestName    = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos_latest.qcow2"
-            def archiveDir    = "${params.QCOW_REMOTE_PATH}/archive"
-            def retentionDays = 7
-
-            // One timestamp per pipeline run – same across hosts
-            def ts = new Date().format("yyyy-MM-dd'T'HHmmss", TimeZone.getTimeZone('UTC'))
-            def archiveName = "${archiveDir}/ubuntu24.04_baseos_${ts}.qcow2"
-
-            ['VMHOST1', 'VMHOST2'].each { hostParam ->
-              def host = params[hostParam]
-              echo "Activating new image on ${host}"
-
-              sh """
-                set -eu
-                mkdir -p ssh_keys
-                # write Jenkins SSH key from env var to file
-                cat "\$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
-                chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\\\$/d' ssh_keys/id_ed25519_jenkins
-
-                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
-                  "\$JENKINS_USER_NAME@${host}" \\
-                  "set -e
-                   sudo mkdir -p '${archiveDir}'
-
-                   # Move current to previous if it exists (for quick rollback)
-                   if [ -f '${currentName}' ]; then
-                     sudo mv '${currentName}' '${previousName}' || true
-                   fi
-
-                   # Copy latest to current (this is what VMs will use)
-                   sudo cp -p '${latestName}' '${currentName}'
-
-                   # Save a timestamped archive of the latest image
-                   sudo cp -p '${latestName}' '${archiveName}'
-
-                   # Prune archives older than ${retentionDays} days
-                   sudo find '${archiveDir}' -name 'ubuntu24.04_baseos_*.qcow2' -type f -mtime +${retentionDays} -print -delete
-                  "
-              """
-            }
-          }
-        }
-      }
-    }
-
-
-    stage('Activate new image on vmhosts (Ubuntu 26.04)') {
-      steps {
-        withCredentials([
-          sshUserPrivateKey(
-            credentialsId: env.JENKINS_SSH_CRED_ID,
-            keyFileVariable: 'JENKINS_USER_KEY',
-            usernameVariable: 'JENKINS_USER_NAME'
-          )
-        ]) {
-          script {
-            def currentName   = "${params.QCOW_REMOTE_PATH}/boot/ubuntu26.04_baseos.qcow2"
-            def previousName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu26.04_baseos_previous.qcow2"
-            def latestName    = "${params.QCOW_REMOTE_PATH}/boot/ubuntu26.04_baseos_latest.qcow2"
-            def archiveDir    = "${params.QCOW_REMOTE_PATH}/archive"
-            def retentionDays = 7
-
-            // One timestamp per pipeline run – same across hosts
-            def ts = new Date().format("yyyy-MM-dd'T'HHmmss", TimeZone.getTimeZone('UTC'))
-            def archiveName = "${archiveDir}/ubuntu26.04_baseos_${ts}.qcow2"
-
-            ['VMHOST1', 'VMHOST2'].each { hostParam ->
-              def host = params[hostParam]
-              echo "Activating new image on ${host}"
-
-              sh """
-                set -eu
-                mkdir -p ssh_keys
-                # write Jenkins SSH key from env var to file
-                cat "\$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
-                chmod 600 ssh_keys/id_ed25519_jenkins
-                sed -i -e '/^\\\$/d' ssh_keys/id_ed25519_jenkins
-
-                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
-                  "\$JENKINS_USER_NAME@${host}" \\
-                  "set -e
-                   sudo mkdir -p '${archiveDir}'
-
-                   # Move current to previous if it exists (for quick rollback)
-                   if [ -f '${currentName}' ]; then
-                     sudo mv '${currentName}' '${previousName}' || true
-                   fi
-
-                   # Copy latest to current (this is what VMs will use)
-                   sudo cp -p '${latestName}' '${currentName}'
-
-                   # Save a timestamped archive of the latest image
-                   sudo cp -p '${latestName}' '${archiveName}'
-
-                   # Prune archives older than ${retentionDays} days
-                   sudo find '${archiveDir}' -name 'ubuntu26.04_baseos_*.qcow2' -type f -mtime +${retentionDays} -print -delete
-                  "
-              """
+                     # Prune archives older than ${retentionDays} days
+                     sudo find '${archiveDir}' -name 'ubuntu${v}_baseos_*.qcow2' -type f -mtime +${retentionDays} -print -delete
+                    "
+                """
+              }
             }
           }
         }
