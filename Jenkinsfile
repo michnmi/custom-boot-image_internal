@@ -80,7 +80,7 @@ pipeline {
               checksumFile="/tmp/ubuntu${v}_sha256.checksum"
 
               echo "Fetching checksum for \$imageName from \$checksumUrl"
-              curl --silent "\$checksumUrl" \\
+              curl --silent --show-error --fail --location "\$checksumUrl" \\
                 | awk -v img="\$imageName" 'index(\$2, img) > 0 {print \$1; exit}' \\
                 > "\$checksumFile"
 
