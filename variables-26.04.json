@@ -1,0 +1,11 @@
+{
+    "disk_size": "24576",
+  
+    "source_iso_url": "https://cloud-images.ubuntu.com/releases/resolute/release/ubuntu-26.04-server-cloudimg-arm64.img",
+    "source_iso_checksum": "REPLACE_THIS_WITH_ACTUAL_VALUE",
+  
+    "output_vm_name": "ubuntu26.04_baseos.qcow2",
+    "output_iso_checksum_path": "/tmp/ubuntu26.04_baseos_sha256.checksums",
+  
+    "ssh_username": "packer"
+}
