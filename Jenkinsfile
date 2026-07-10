@@ -108,7 +108,7 @@ pipeline {
       }
     }
 
-    stage('Send qcow to vmhosts') {
+    stage('Send qcow to vmhosts (Ubuntu 22.04)') {
       steps {
         withCredentials([
           sshUserPrivateKey(
@@ -147,7 +147,48 @@ pipeline {
       }
     }
 
-    stage('Activate new image on vmhosts') {
+    stage('Send qcow to vmhosts (Ubuntu 24.04)') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(
+            credentialsId: env.JENKINS_SSH_CRED_ID,
+            keyFileVariable: 'JENKINS_USER_KEY',
+            usernameVariable: 'JENKINS_USER_NAME'
+          )
+        ]) {
+          script {
+            def qcowLocal   = "${params.QCOW_OUTPUT_DIR}/${params.QCOW_OUTPUT_NAME}"
+            def latestName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos_latest.qcow2"
+
+            ['VMHOST1', 'VMHOST2'].each { hostParam ->
+              def host = params[hostParam]
+              echo "Syncing qcow to ${host}"
+
+              sh """
+                set -eu
+                mkdir -p ssh_keys
+                cat "$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
+                chmod 600 ssh_keys/id_ed25519_jenkins
+                sed -i -e '/^\$/d' ssh_keys/id_ed25519_jenkins
+
+                rsync -a --rsync-path="sudo rsync" \\
+                  -e "ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins" \\
+                  "${qcowLocal}" \\
+                  "${JENKINS_USER_NAME}@${host}:${latestName}" --progress
+
+                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
+                  "${JENKINS_USER_NAME}@${host}" \\
+                  "sudo chown libvirt-qemu:kvm ${latestName} && sudo chmod 660 ${latestName}"
+              """
+            }
+          }
+        }
+      }
+    }
+
+
+
+    stage('Activate new image on vmhosts (Ubuntu 22.04)') {
       steps {
         withCredentials([
           sshUserPrivateKey(
@@ -204,6 +245,66 @@ pipeline {
         }
       }
     }
+
+
+    stage('Activate new image on vmhosts (Ubuntu 24.04)') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(
+            credentialsId: env.JENKINS_SSH_CRED_ID,
+            keyFileVariable: 'JENKINS_USER_KEY',
+            usernameVariable: 'JENKINS_USER_NAME'
+          )
+        ]) {
+          script {
+            def currentName   = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos.qcow2"
+            def previousName  = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos_previous.qcow2"
+            def latestName    = "${params.QCOW_REMOTE_PATH}/boot/ubuntu24.04_baseos_latest.qcow2"
+            def archiveDir    = "${params.QCOW_REMOTE_PATH}/archive"
+            def retentionDays = 7
+
+            // One timestamp per pipeline run – same across hosts
+            def ts = new Date().format("yyyy-MM-dd'T'HHmmss", TimeZone.getTimeZone('UTC'))
+            def archiveName = "${archiveDir}/ubuntu24.04_baseos_${ts}.qcow2"
+
+            ['VMHOST1', 'VMHOST2'].each { hostParam ->
+              def host = params[hostParam]
+              echo "Activating new image on ${host}"
+
+              sh """
+                set -eu
+                mkdir -p ssh_keys
+                # write Jenkins SSH key from env var to file
+                cat "\$JENKINS_USER_KEY" > ssh_keys/id_ed25519_jenkins
+                chmod 600 ssh_keys/id_ed25519_jenkins
+                sed -i -e '/^\\\$/d' ssh_keys/id_ed25519_jenkins
+
+                ssh -o StrictHostKeyChecking=no -i ssh_keys/id_ed25519_jenkins \\
+                  "\$JENKINS_USER_NAME@${host}" \\
+                  "set -e
+                   sudo mkdir -p '${archiveDir}'
+
+                   # Move current to previous if it exists (for quick rollback)
+                   if [ -f '${currentName}' ]; then
+                     sudo mv '${currentName}' '${previousName}' || true
+                   fi
+
+                   # Copy latest to current (this is what VMs will use)
+                   sudo cp -p '${latestName}' '${currentName}'
+
+                   # Save a timestamped archive of the latest image
+                   sudo cp -p '${latestName}' '${archiveName}'
+
+                   # Prune archives older than ${retentionDays} days
+                   sudo find '${archiveDir}' -name 'ubuntu24.04_baseos_*.qcow2' -type f -mtime +${retentionDays} -print -delete
+                  "
+              """
+            }
+          }
+        }
+      }
+    }
+
 
 
     stage('Clean up') {
