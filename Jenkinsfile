@@ -109,12 +109,12 @@ pipeline {
               variable: 'VAULT_PASSWD'
             )
           ]) {
-            sh '''
+            sh """
               set -eu
-              make clean
-              make generate_iso
-              make build
-            '''
+              make clean VERSIONS="${IMAGE_VERSIONS.join(' ')}"
+              make generate_iso VERSIONS="${IMAGE_VERSIONS.join(' ')}"
+              make build VERSIONS="${IMAGE_VERSIONS.join(' ')}"
+            """
           }
         }
       }
