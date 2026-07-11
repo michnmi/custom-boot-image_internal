@@ -135,7 +135,7 @@ pipeline {
                 script: "grep -oP '\"output_vm_name\":\\s*\"\\K[^\"]+' variables-${v}.json",
                 returnStdout: true
               ).trim()
-              def qcowLocal  = "${params.QCOW_OUTPUT_DIR}/${outputName}"
+              def qcowLocal  = "output-ubuntu${v}_baseos/${outputName}"
               def latestName = "${params.QCOW_REMOTE_PATH}/boot/ubuntu${v}_baseos_latest.qcow2"
 
               ['VMHOST1', 'VMHOST2'].each { hostParam ->
