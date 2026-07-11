@@ -9,6 +9,8 @@
       "name": "ubuntu22.04_baseos",
       "type": "qemu",
       "accelerator": "kvm",
+      "memory": 512,
+      "cpus": 1,
       "vm_name": "{{ user `output_vm_name` }}",
       "format": "qcow2",
       "iso_url": "{{ user `source_iso_url` }}",
