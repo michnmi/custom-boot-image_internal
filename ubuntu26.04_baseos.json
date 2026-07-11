@@ -9,6 +9,8 @@
       "name": "ubuntu26.04_baseos",
       "type": "qemu",
       "accelerator": "kvm",
+      "memory": 1024,
+      "cpus": 2,
       "vm_name": "{{ user `output_vm_name` }}",
       "format": "qcow2",
       "iso_url": "{{ user `source_iso_url` }}",
@@ -26,7 +28,7 @@
       "ssh_wait_timeout": "20000s",
       "shutdown_command": "echo 'shutdown -P now' > /tmp/shutdown.sh; sudo -S sh '/tmp/shutdown.sh'",
       "qemuargs": [
-        [ "-cdrom", "cloud-init/ubuntu24.04_baseos/nocloud.iso" ]
+        [ "-cdrom", "cloud-init/ubuntu26.04_baseos/nocloud.iso" ]
       ]
     }
   ],
