@@ -1,4 +1,4 @@
-VERSIONS ?= 22.04 24.04 26.04
+VERSIONS ?= 22.04 24.04
 
 build:
 	@for v in $(VERSIONS); do \
